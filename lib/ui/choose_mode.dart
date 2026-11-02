@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'round_mode.dart';
+import 'timer_mode.dart';
 
 class ChooseMode extends StatelessWidget {
   const ChooseMode({super.key});
@@ -65,7 +67,12 @@ class ChooseMode extends StatelessWidget {
                       ),
                       child: ElevatedButton(
                         onPressed: () {
-                          debugPrint('ROUND pressionado!');
+                          debugPrint('ROUND MODE pressionado!');
+                            // Navegar para a tela ChooseMode
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(builder: (context) => const RoundMode()),
+                            );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -108,7 +115,12 @@ class ChooseMode extends StatelessWidget {
                       ),
                       child: ElevatedButton(
                         onPressed: () {
-                          debugPrint('TIMER pressionado!');
+                          debugPrint('TIMER MODE pressionado!');
+                            // Navegar para a tela ChooseMode
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(builder: (context) => const TimerMode()),
+                            );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
