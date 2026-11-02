@@ -64,6 +64,11 @@ flutter:
     - family: Antonio
       fonts:
         - asset: lib/assets/fonts/Antonio-VariableFont_wght.ttf
+        - asset: lib/assets/fonts/Rajdhani-Bold.ttf
+        - asset: lib/assets/fonts/Rajdhani-Light.ttf
+        - asset: lib/assets/fonts/Rajdhani-Medium.ttf
+        - asset: lib/assets/fonts/Rajdhani-Regular.ttf
+        - asset: lib/assets/fonts/Rajdhani-Semibold.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

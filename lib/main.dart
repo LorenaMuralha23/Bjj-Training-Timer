@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ui/home.dart';
+import 'ui/round_mode.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: ScaffoldHome()
+      home: const RoundMode()
     );
   }
 }
