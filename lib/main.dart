@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-//import 'ui/home.dart';
-import 'ui/choose_mode.dart';
+import 'ui/home.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: ChooseMode()
+      home: ScaffoldHome()
     );
   }
 }

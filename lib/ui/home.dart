@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'choose_mode.dart';
 
 //Aqui eu crio a definição do Widget da Home.
 class ScaffoldHome extends StatelessWidget {
@@ -63,6 +64,11 @@ class ScaffoldHome extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           debugPrint('START pressionado!');
+                            // Navegar para a tela ChooseMode
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(builder: (context) => const ChooseMode()),
+                            );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
