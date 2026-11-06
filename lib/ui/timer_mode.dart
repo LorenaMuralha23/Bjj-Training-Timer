@@ -1,7 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:jj_timer/core/timer/pause_and_play_engine.dart';
+import 'package:jj_timer/core/timer/stopwatch_engine.dart';
 
-class TimerMode extends StatelessWidget {
+import 'dart:async';
+
+class TimerMode extends StatefulWidget {
   const TimerMode({super.key});
+
+  @override
+  State<TimerMode> createState() => _TimerModeState();
+}
+
+class _TimerModeState extends State<TimerMode> {
+  final StopwatchEngine _stopwatchEngine = StopwatchEngine();
+  Timer? _updateTimer;
+  String _formattedTime = '00:00';
+  PlayButtonController _playButtonController = PlayButtonController();
+  String _playButtonImage = 'lib/assets/images/play_btn.png';
+  bool mode = false;
+
+  @override
+  void dispose() {
+    _updateTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +126,7 @@ class TimerMode extends StatelessWidget {
 
                     //Cronômetro
                     Text(
-                      '05:00',
+                      _formattedTime,
                       style: TextStyle(
                         fontFamily: 'Antonio',
                         fontSize: 128,
@@ -196,8 +218,35 @@ class TimerMode extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(100),
                                 ),
                                 child: ElevatedButton(
+                                  //play e timer = false (não está rodando)
+                                  //pause e timer = true (está rodando)
                                   onPressed: () {
                                     debugPrint('START pressionado!');
+                                 
+                                    
+                                    if (mode) {
+                                      _stopwatchEngine.stop();
+                                      _updateTimer?.cancel();
+                                    } else {
+                                      _stopwatchEngine.start();
+                                    }
+                                    mode = !mode;
+
+                                    _playButtonImage = _playButtonController.playOrPause(mode);
+
+                                    if (_updateTimer?.isActive != true) {
+                                      _updateTimer = Timer.periodic(
+                                        const Duration(milliseconds: 100),
+                                        (timer) {
+                                          setState(() {
+                                            _formattedTime = _stopwatchEngine
+                                                .formatDuration(
+                                                  _stopwatchEngine.elapsed,
+                                                );
+                                          });
+                                        },
+                                      );
+                                    }
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
@@ -209,7 +258,7 @@ class TimerMode extends StatelessWidget {
                                     ),
                                   ),
                                   child: Image.asset(
-                                    'lib/assets/images/play_btn.png',
+                                    _playButtonImage,
                                     width: 50,
                                   ),
                                 ),
@@ -219,7 +268,7 @@ class TimerMode extends StatelessWidget {
 
                           OutlinedButton(
                             onPressed: () {
-                              debugPrint('RESET BUTTON PRESSED');
+                              debugPrint('EDIT BUTTON PRESSED');
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
