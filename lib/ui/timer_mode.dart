@@ -179,6 +179,13 @@ class _TimerModeState extends State<TimerMode> {
                           OutlinedButton(
                             onPressed: () {
                               debugPrint('RESET BUTTON PRESSED');
+
+                              mode = false;
+                              _playButtonImage = _playButtonController.playOrPause(mode);
+
+                              _stopwatchEngine.reset();
+                              _stopwatchEngine.stop();
+
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
@@ -222,7 +229,6 @@ class _TimerModeState extends State<TimerMode> {
                                   //pause e timer = true (está rodando)
                                   onPressed: () {
                                     debugPrint('START pressionado!');
-                                 
                                     
                                     if (mode) {
                                       _stopwatchEngine.stop();
