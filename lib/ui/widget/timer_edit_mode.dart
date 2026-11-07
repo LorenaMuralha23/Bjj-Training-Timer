@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jj_timer/core/timer/stopwatch_engine.dart';
+import 'package:flutter/cupertino.dart';
 
 class TimerEditModeDialog extends StatefulWidget {
   const TimerEditModeDialog({super.key});
@@ -188,103 +189,142 @@ class TimeAdjuster extends StatefulWidget {
 }
 
 class _TimeAdjusterState extends State<TimeAdjuster> {
-  final Duration duration = const Duration();
   int _minutes = 1;
   int _seconds = 0;
-  String time = '01:00';
-  StopwatchEngine stopwatchEngine = StopwatchEngine();
+
+  final StopwatchEngine stopwatchEngine = StopwatchEngine();
+
+  late final FixedExtentScrollController _minutesController;
+  late final FixedExtentScrollController _secondsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _minutesController = FixedExtentScrollController(initialItem: _minutes);
+    _secondsController = FixedExtentScrollController(initialItem: _seconds);
+  }
+
+  @override
+  void dispose() {
+    _minutesController.dispose();
+    _secondsController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 155,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      height: 190,
       decoration: BoxDecoration(
         color: Colors.transparent,
         border: Border.all(color: Colors.white, width: 1),
-        borderRadius: BorderRadius.circular(90),
+        borderRadius: BorderRadius.circular(32),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          // Diminuir
-          SizedBox(
-            width: 42,
-            child: IconButton(
-              onPressed: () {
-                debugPrint('Diminuir tempo');
-
-                if (_seconds > 0){
-                   _seconds--;
-                }
-               
-                if (_seconds <= 0 && _minutes > 0) {
-                  _seconds = 59;
-                  _minutes--;
-                }
-
-                Duration newDuration = Duration(
-                  minutes: _minutes,
-                  seconds: _seconds,
-                );
-
-                setState(() {
-                  time = stopwatchEngine.formatDuration(newDuration);
-                });
-              },
-              padding: EdgeInsets.zero,
-              icon: const Icon(Icons.remove, color: Colors.white, size: 32),
-            ),
-          ),
-
-          // Tempo
-          Expanded(
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  time,
-                  style: const TextStyle(
-                    fontFamily: 'Antonio',
-                    fontSize: 70,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 3,
-                    color: Colors.white,
-                  ),
-                ),
+          // faixa de seleção central
+          Positioned(
+            left: 18,
+            right: 18,
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF6E717A).withAlpha(90),
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
           ),
 
-          // Aumentar
-          SizedBox(
-            width: 42,
-            child: IconButton(
-              onPressed: () {
-                debugPrint('Aumentar tempo');
+          Row(
+            children: [
+              Expanded(
+                child: CupertinoTheme(
+                  data: const CupertinoThemeData(
+                    brightness: Brightness.dark,
+                  ),
+                  child: CupertinoPicker(
+                    scrollController: _minutesController,
+                    itemExtent: 44,
+                    diameterRatio: 1.35,
+                    squeeze: 1.05,
+                    useMagnifier: true,
+                    magnification: 1.12,
+                    selectionOverlay: const SizedBox.shrink(),
+                    backgroundColor: Colors.transparent,
+                    onSelectedItemChanged: (int value) {
+                      setState(() {
+                        _minutes = value;
+                      });
+                    },
+                    children: List.generate(
+                      60,
+                      (index) => Center(
+                        child: Text(
+                          index.toString().padLeft(2, '0'),
+                          style: const TextStyle(
+                            fontFamily: 'Antonio',
+                            fontSize: 34,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
-                _seconds++;
-                if (_seconds >= 60) {
-                  _seconds = 0;
-                  _minutes++;
-                }
-
-                Duration newDuration = Duration(
-                  minutes: _minutes,
-                  seconds: _seconds,
-                );
-
-                setState(() {
-                  time = stopwatchEngine.formatDuration(newDuration);
-                });
-              },
-              padding: EdgeInsets.zero,
-              icon: const Icon(Icons.add, color: Colors.white, size: 32),
-            ),
+              Expanded(
+                child: CupertinoTheme(
+                  data: const CupertinoThemeData(
+                    brightness: Brightness.dark,
+                  ),
+                  child: CupertinoPicker(
+                    scrollController: _secondsController,
+                    itemExtent: 44,
+                    diameterRatio: 1.35,
+                    squeeze: 1.05,
+                    useMagnifier: true,
+                    magnification: 1.12,
+                    selectionOverlay: const SizedBox.shrink(),
+                    backgroundColor: Colors.transparent,
+                    onSelectedItemChanged: (int value) {
+                      setState(() {
+                        _seconds = value;
+                      });
+                    },
+                    children: List.generate(
+                      60,
+                      (index) => Center(
+                        child: Text(
+                          index.toString().padLeft(2, '0'),
+                          style: const TextStyle(
+                            fontFamily: 'Antonio',
+                            fontSize: 34,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+
+  Duration get selectedDuration => Duration(
+        minutes: _minutes,
+        seconds: _seconds,
+      );
+
+  String get formattedTime => stopwatchEngine.formatDuration(selectedDuration);
 }
