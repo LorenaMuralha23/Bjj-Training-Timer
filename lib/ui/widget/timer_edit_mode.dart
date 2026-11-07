@@ -10,6 +10,9 @@ class TimerEditModeDialog extends StatefulWidget {
 }
 
 class _TimerEditModeDialogState extends State<TimerEditModeDialog> {
+  Duration _selectedDuration = const Duration(minutes: 0);
+  bool _soundEnabled = true;
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -54,7 +57,13 @@ class _TimerEditModeDialogState extends State<TimerEditModeDialog> {
             const SizedBox(height: 42),
 
             // Controle visual do tempo
-            TimeAdjuster(),
+            TimeAdjuster(
+              onDurationChanged: (Duration newDuration) {
+                setState(() {
+                  _selectedDuration = newDuration;
+                });
+              },
+            ),
 
             const SizedBox(height: 48),
 
@@ -76,26 +85,42 @@ class _TimerEditModeDialogState extends State<TimerEditModeDialog> {
                   ),
 
                   // Apenas visual por enquanto.
-                  Container(
-                    width: 94,
-                    height: 46,
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFFC40000), Color(0xFF730202)],
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _soundEnabled = !_soundEnabled;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      width: 94,
+                      height: 46,
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        gradient: _soundEnabled
+                            ? const LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Color(0xFFC40000), Color(0xFF730202)],
+                              )
+                            : null,
+                        color: _soundEnabled ? null : const Color(0xFF454545),
+                        borderRadius: BorderRadius.circular(40),
                       ),
-                      borderRadius: BorderRadius.circular(40),
-                    ),
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        width: 42,
-                        height: 42,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE7E7E7),
-                          shape: BoxShape.circle,
+                      child: AnimatedAlign(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                        alignment: _soundEnabled
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE7E7E7),
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
                     ),
@@ -148,6 +173,8 @@ class _TimerEditModeDialogState extends State<TimerEditModeDialog> {
                     child: ElevatedButton(
                       onPressed: () {
                         debugPrint('SALVAR pressionado');
+
+                        Navigator.pop(context, _selectedDuration);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
@@ -182,7 +209,9 @@ class _TimerEditModeDialogState extends State<TimerEditModeDialog> {
 }
 
 class TimeAdjuster extends StatefulWidget {
-  const TimeAdjuster({super.key});
+  final ValueChanged<Duration> onDurationChanged;
+
+  const TimeAdjuster({super.key, required this.onDurationChanged});
 
   @override
   State<TimeAdjuster> createState() => _TimeAdjusterState();
@@ -241,9 +270,7 @@ class _TimeAdjusterState extends State<TimeAdjuster> {
             children: [
               Expanded(
                 child: CupertinoTheme(
-                  data: const CupertinoThemeData(
-                    brightness: Brightness.dark,
-                  ),
+                  data: const CupertinoThemeData(brightness: Brightness.dark),
                   child: CupertinoPicker(
                     scrollController: _minutesController,
                     itemExtent: 44,
@@ -257,6 +284,8 @@ class _TimeAdjusterState extends State<TimeAdjuster> {
                       setState(() {
                         _minutes = value;
                       });
+
+                      widget.onDurationChanged(selectedDuration);
                     },
                     children: List.generate(
                       60,
@@ -279,9 +308,7 @@ class _TimeAdjusterState extends State<TimeAdjuster> {
 
               Expanded(
                 child: CupertinoTheme(
-                  data: const CupertinoThemeData(
-                    brightness: Brightness.dark,
-                  ),
+                  data: const CupertinoThemeData(brightness: Brightness.dark),
                   child: CupertinoPicker(
                     scrollController: _secondsController,
                     itemExtent: 44,
@@ -295,6 +322,8 @@ class _TimeAdjusterState extends State<TimeAdjuster> {
                       setState(() {
                         _seconds = value;
                       });
+
+                      widget.onDurationChanged(selectedDuration);
                     },
                     children: List.generate(
                       60,
@@ -321,10 +350,8 @@ class _TimeAdjusterState extends State<TimeAdjuster> {
     );
   }
 
-  Duration get selectedDuration => Duration(
-        minutes: _minutes,
-        seconds: _seconds,
-      );
+  Duration get selectedDuration =>
+      Duration(minutes: _minutes, seconds: _seconds);
 
   String get formattedTime => stopwatchEngine.formatDuration(selectedDuration);
 }

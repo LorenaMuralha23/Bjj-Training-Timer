@@ -16,9 +16,11 @@ class _TimerModeState extends State<TimerMode> {
   final StopwatchEngine _stopwatchEngine = StopwatchEngine();
   Timer? _updateTimer;
   String _formattedTime = '00:00';
+  String _timeChoosed = '00:00';
   PlayButtonController _playButtonController = PlayButtonController();
   String _playButtonImage = 'lib/assets/images/play_btn.png';
   bool mode = false;
+  Duration? durationSelected = null;
 
   @override
   void dispose() {
@@ -156,7 +158,7 @@ class _TimerModeState extends State<TimerMode> {
                                   ),
                                 ),
                                 TextSpan(
-                                  text: '5:00',
+                                  text: _timeChoosed,
                                   style: TextStyle(
                                     fontFamily: 'Antonio',
                                     fontSize: 24,
@@ -249,7 +251,10 @@ class _TimerModeState extends State<TimerMode> {
                                           setState(() {
                                             _formattedTime = _stopwatchEngine
                                                 .formatDuration(
-                                                  _stopwatchEngine.elapsed,
+                                                  _stopwatchEngine
+                                                      .remainingCalculator(
+                                                        durationSelected!,
+                                                      ),
                                                 );
                                           });
                                         },
@@ -275,17 +280,38 @@ class _TimerModeState extends State<TimerMode> {
                           ),
 
                           OutlinedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               debugPrint('EDITAR BUTTON PRESSED');
 
-                              showDialog(
-                                context: context,
-                                barrierColor: Colors.black.withValues(
-                                  alpha: 0.65,
-                                ),
-                                builder: (context) =>
-                                    const TimerEditModeDialog(),
-                              );
+                              _stopwatchEngine.stop();
+
+                              Duration? durationChoosed =
+                                  await showDialog<Duration>(
+                                    context: context,
+                                    barrierColor: Colors.black.withValues(
+                                      alpha: 0.65,
+                                    ),
+                                    builder: (context) =>
+                                        const TimerEditModeDialog(),
+                                  );
+
+                              setState(() {
+                                if (mode) {
+                                  debugPrint("Entrei aqui");
+                                  mode = false; //false
+                                   _playButtonImage = _playButtonController.playOrPause(
+                                    mode,
+                                  ); //false
+                                }
+
+                                if (durationChoosed != null) {
+                                  durationSelected = durationChoosed;
+                                  _timeChoosed = _stopwatchEngine.formatDuration(durationSelected!);
+                                  _stopwatchEngine.reset();
+                                  _formattedTime = _stopwatchEngine
+                                      .formatDuration(durationSelected!);
+                                }
+                              });
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
