@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:jj_timer/core/timer/pause_and_play_engine.dart';
 import 'package:jj_timer/core/timer/stopwatch_engine.dart';
+import 'package:jj_timer/ui/widget/timer_edit_mode.dart';
 
 import 'dart:async';
 
@@ -181,11 +182,11 @@ class _TimerModeState extends State<TimerMode> {
                               debugPrint('RESET BUTTON PRESSED');
 
                               mode = false;
-                              _playButtonImage = _playButtonController.playOrPause(mode);
+                              _playButtonImage = _playButtonController
+                                  .playOrPause(mode);
 
                               _stopwatchEngine.reset();
                               _stopwatchEngine.stop();
-
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
@@ -229,7 +230,7 @@ class _TimerModeState extends State<TimerMode> {
                                   //pause e timer = true (está rodando)
                                   onPressed: () {
                                     debugPrint('START pressionado!');
-                                    
+
                                     if (mode) {
                                       _stopwatchEngine.stop();
                                       _updateTimer?.cancel();
@@ -238,7 +239,8 @@ class _TimerModeState extends State<TimerMode> {
                                     }
                                     mode = !mode;
 
-                                    _playButtonImage = _playButtonController.playOrPause(mode);
+                                    _playButtonImage = _playButtonController
+                                        .playOrPause(mode);
 
                                     if (_updateTimer?.isActive != true) {
                                       _updateTimer = Timer.periodic(
@@ -274,7 +276,16 @@ class _TimerModeState extends State<TimerMode> {
 
                           OutlinedButton(
                             onPressed: () {
-                              debugPrint('EDIT BUTTON PRESSED');
+                              debugPrint('EDITAR BUTTON PRESSED');
+
+                              showDialog(
+                                context: context,
+                                barrierColor: Colors.black.withValues(
+                                  alpha: 0.65,
+                                ),
+                                builder: (context) =>
+                                    const TimerEditModeDialog(),
+                              );
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
