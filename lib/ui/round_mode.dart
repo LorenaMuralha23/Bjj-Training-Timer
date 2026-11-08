@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:jj_timer/core/timer/pause_and_play_engine.dart';
+import 'package:jj_timer/ui/widget/roud_edit_mode.dart';
 
-class RoundMode extends StatelessWidget {
+class RoundMode extends StatefulWidget {
   const RoundMode({super.key});
+
+  @override
+  State<RoundMode> createState() => _RoundModeState();
+}
+
+class _RoundModeState extends State<RoundMode> {
+  PlayButtonController _playButtonController = PlayButtonController();
+  String _playButtonImage = 'lib/assets/images/play_btn.png';
+  bool mode = false; //false = stopped
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +220,12 @@ class RoundMode extends StatelessWidget {
                                 child: ElevatedButton(
                                   onPressed: () {
                                     debugPrint('START pressionado!');
+                                    mode = !mode;
+
+                                    setState(() {
+                                      _playButtonImage = _playButtonController
+                                          .playOrPause(mode);
+                                    });
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
@@ -220,7 +237,7 @@ class RoundMode extends StatelessWidget {
                                     ),
                                   ),
                                   child: Image.asset(
-                                    'lib/assets/images/play_btn.png',
+                                    _playButtonImage,
                                     width: 50,
                                   ),
                                 ),
@@ -230,7 +247,16 @@ class RoundMode extends StatelessWidget {
 
                           OutlinedButton(
                             onPressed: () {
-                              debugPrint('RESET BUTTON PRESSED');
+                              debugPrint('EDIT BUTTON PRESSED');
+
+                              showDialog(
+                                context: context,
+                                barrierColor: Colors.black.withValues(
+                                  alpha: 0.65,
+                                ),
+                                builder: (context) =>
+                                    const RoundEditModeDialog(),
+                              );
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
