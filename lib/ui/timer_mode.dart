@@ -1,7 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:jj_timer/core/timer/pause_and_play_engine.dart';
+import 'package:jj_timer/core/timer/stopwatch_engine.dart';
+import 'package:jj_timer/ui/widget/timer_edit_mode.dart';
 
-class TimerMode extends StatelessWidget {
+import 'dart:async';
+
+class TimerMode extends StatefulWidget {
   const TimerMode({super.key});
+
+  @override
+  State<TimerMode> createState() => _TimerModeState();
+}
+
+class _TimerModeState extends State<TimerMode> {
+  final StopwatchEngine _stopwatchEngine = StopwatchEngine();
+  Timer? _updateTimer;
+  String _formattedTime = '00:00';
+  String _timeChoosed = '00:00';
+  PlayButtonController _playButtonController = PlayButtonController();
+  String _playButtonImage = 'lib/assets/images/play_btn.png';
+  bool mode = false;
+  Duration? durationSelected = null;
+
+  @override
+  void dispose() {
+    _updateTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +129,7 @@ class TimerMode extends StatelessWidget {
 
                     //Cronômetro
                     Text(
-                      '05:00',
+                      _formattedTime,
                       style: TextStyle(
                         fontFamily: 'Antonio',
                         fontSize: 128,
@@ -133,7 +158,7 @@ class TimerMode extends StatelessWidget {
                                   ),
                                 ),
                                 TextSpan(
-                                  text: '5:00',
+                                  text: _timeChoosed,
                                   style: TextStyle(
                                     fontFamily: 'Antonio',
                                     fontSize: 24,
@@ -157,6 +182,13 @@ class TimerMode extends StatelessWidget {
                           OutlinedButton(
                             onPressed: () {
                               debugPrint('RESET BUTTON PRESSED');
+
+                              mode = false;
+                              _playButtonImage = _playButtonController
+                                  .playOrPause(mode);
+
+                              _stopwatchEngine.reset();
+                              _stopwatchEngine.stop();
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
@@ -196,8 +228,38 @@ class TimerMode extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(100),
                                 ),
                                 child: ElevatedButton(
+                                  //play e timer = false (não está rodando)
+                                  //pause e timer = true (está rodando)
                                   onPressed: () {
                                     debugPrint('START pressionado!');
+
+                                    if (mode) {
+                                      _stopwatchEngine.stop();
+                                      _updateTimer?.cancel();
+                                    } else {
+                                      _stopwatchEngine.start();
+                                    }
+                                    mode = !mode;
+
+                                    _playButtonImage = _playButtonController
+                                        .playOrPause(mode);
+
+                                    if (_updateTimer?.isActive != true) {
+                                      _updateTimer = Timer.periodic(
+                                        const Duration(milliseconds: 100),
+                                        (timer) {
+                                          setState(() {
+                                            _formattedTime = _stopwatchEngine
+                                                .formatDuration(
+                                                  _stopwatchEngine
+                                                      .remainingCalculator(
+                                                        durationSelected!,
+                                                      ),
+                                                );
+                                          });
+                                        },
+                                      );
+                                    }
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
@@ -209,7 +271,7 @@ class TimerMode extends StatelessWidget {
                                     ),
                                   ),
                                   child: Image.asset(
-                                    'lib/assets/images/play_btn.png',
+                                    _playButtonImage,
                                     width: 50,
                                   ),
                                 ),
@@ -218,8 +280,38 @@ class TimerMode extends StatelessWidget {
                           ),
 
                           OutlinedButton(
-                            onPressed: () {
-                              debugPrint('RESET BUTTON PRESSED');
+                            onPressed: () async {
+                              debugPrint('EDITAR BUTTON PRESSED');
+
+                              _stopwatchEngine.stop();
+
+                              Duration? durationChoosed =
+                                  await showDialog<Duration>(
+                                    context: context,
+                                    barrierColor: Colors.black.withValues(
+                                      alpha: 0.65,
+                                    ),
+                                    builder: (context) =>
+                                        const TimerEditModeDialog(),
+                                  );
+
+                              setState(() {
+                                if (mode) {
+                                  debugPrint("Entrei aqui");
+                                  mode = false; //false
+                                   _playButtonImage = _playButtonController.playOrPause(
+                                    mode,
+                                  ); //false
+                                }
+
+                                if (durationChoosed != null) {
+                                  durationSelected = durationChoosed;
+                                  _timeChoosed = _stopwatchEngine.formatDuration(durationSelected!);
+                                  _stopwatchEngine.reset();
+                                  _formattedTime = _stopwatchEngine
+                                      .formatDuration(durationSelected!);
+                                }
+                              });
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
