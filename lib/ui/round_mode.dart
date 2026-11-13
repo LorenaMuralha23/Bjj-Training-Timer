@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:jj_timer/core/audio/audio_service.dart';
 import 'package:jj_timer/core/timer/round_engine.dart';
 import 'package:jj_timer/ui/menu_mode.dart';
 import 'package:jj_timer/ui/widget/roud_edit_mode.dart';
@@ -26,6 +27,7 @@ class _RoundModeState extends State<RoundMode> {
 
   late RoundEngine _engine;
   Timer? _ticker;
+  final AudioService _audioService = AudioService();
 
   @override
   void initState() {
@@ -35,16 +37,48 @@ class _RoundModeState extends State<RoundMode> {
 
   @override
   void dispose() {
+    _audioService.dispose();
     _ticker?.cancel();
     super.dispose();
   }
 
   void _startTicker() {
+    String soundPath = '';
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      final previousPhase = _engine.phase;
+
       _engine.update();
+
+      final currentPhase = _engine.phase;
+
+      String? soundPath;
+
+      if (_roundInfo.soundEnabled) {
+        if (previousPhase == RoundPhase.work &&
+            currentPhase == RoundPhase.rest) {
+          soundPath = 'lib/assets/audio/rest_start.mp3';
+        }
+
+        if (previousPhase == RoundPhase.rest &&
+            currentPhase == RoundPhase.work) {
+          soundPath = 'lib/assets/audio/round_start.mp3';
+        }
+
+        if (previousPhase == RoundPhase.work &&
+            currentPhase == RoundPhase.finished) {
+          soundPath = 'lib/assets/audio/training_end.mp3';
+        }
+
+        if (soundPath != null) {
+          _audioService.playAudio(soundPath);
+        }
+      }
+
       if (!mounted) return;
+
       setState(() {});
+
       if (!_engine.isRunning) {
         _ticker?.cancel();
         _ticker = null;
@@ -53,6 +87,7 @@ class _RoundModeState extends State<RoundMode> {
   }
 
   void _togglePlayPause() {
+    final previousPhase = _engine.phase;
     if (_engine.isFinished) return;
     if (_engine.isRunning) {
       _engine.pause();
@@ -60,6 +95,13 @@ class _RoundModeState extends State<RoundMode> {
       _ticker = null;
     } else {
       _engine.start();
+
+      if (previousPhase == RoundPhase.ready &&
+          _engine.phase == RoundPhase.work &&
+          _roundInfo.soundEnabled) {
+        _audioService.playAudio('lib/assets/audio/round_start.mp3');
+      }
+
       if (_engine.isRunning) _startTicker();
     }
     setState(() {});
