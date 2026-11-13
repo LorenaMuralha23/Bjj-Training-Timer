@@ -1,266 +1,200 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:jj_timer/ui/widget/round_info.dart';
 
-/// Janela visual de configuração do modo Round.
-///
-/// A interação com as roletas e os switches está implementada.
-/// A integração com a lógica do RoundMode fica para uma etapa posterior.
+const _redGradient = LinearGradient(
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [Color(0xFFC40000), Color(0xFF730202)],
+);
+const _darkGradient = LinearGradient(
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [Color(0xFF292929), Color(0xFF080808)],
+);
+
+String _formatDuration(Duration value) {
+  return '${value.inMinutes.remainder(60).toString().padLeft(2, '0')}'
+      ':${value.inSeconds.remainder(60).toString().padLeft(2, '0')}';
+}
+
+/// Retorna RoundInfo ao salvar, ou null ao cancelar/tocar fora.
 class RoundEditModeDialog extends StatefulWidget {
-  const RoundEditModeDialog({super.key});
+  final RoundInfo initialInfo;
+
+  const RoundEditModeDialog({super.key, required this.initialInfo});
 
   @override
   State<RoundEditModeDialog> createState() => _RoundEditModeDialogState();
 }
 
 class _RoundEditModeDialogState extends State<RoundEditModeDialog> {
-  Duration _roundDuration = const Duration(minutes: 5);
-  Duration _restDuration = const Duration(minutes: 1);
-  int _rounds = 1;
-  bool _autoRestartEnabled = true;
-  bool _soundEnabled = true;
+  late Duration _roundDuration;
+  late Duration _restDuration;
+  late int _rounds;
+  late bool _autoRestart;
+  late bool _soundEnabled;
 
-  static const _gradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0xFF292929), Color(0xFF080808)],
-  );
+  @override
+  void initState() {
+    super.initState();
+    _roundDuration = widget.initialInfo.roundDuration;
+    _restDuration = widget.initialInfo.restDuration;
+    _rounds = widget.initialInfo.rounds;
+    _autoRestart = widget.initialInfo.autoRestartEnabled;
+    _soundEnabled = widget.initialInfo.soundEnabled;
+  }
+
+  Future<void> _editDuration({required bool isRound}) async {
+    final initial = isRound ? _roundDuration : _restDuration;
+    final result = await showDialog<Duration>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      builder: (_) => _DurationWheelDialog(
+        title: isRound ? 'TEMPO DO ROUND' : 'TEMPO DE DESCANSO',
+        initial: initial,
+      ),
+    );
+    if (!mounted || result == null) return;
+    setState(() {
+      if (isRound) {
+        _roundDuration = result;
+      } else {
+        _restDuration = result;
+      }
+    });
+  }
+
+  Future<void> _editRounds() async {
+    final result = await showDialog<int>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      builder: (_) => _RoundsWheelDialog(initial: _rounds),
+    );
+    if (!mounted || result == null) return;
+    setState(() => _rounds = result);
+  }
+
+  void _save() {
+    final result = RoundInfo(
+      _roundDuration,
+      _restDuration,
+      _rounds,
+      _autoRestart,
+      _soundEnabled,
+    );
+    Navigator.pop(context, result);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 390,
-          maxHeight: MediaQuery.sizeOf(context).height - 40,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 390),
+        decoration: BoxDecoration(
+          gradient: _darkGradient,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white, width: 1),
         ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 26),
-          decoration: BoxDecoration(
-            gradient: _gradient,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white, width: 1),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    'EDITAR ROUND',
-                    style: TextStyle(
-                      fontFamily: 'Antonio',
-                      fontSize: 40,
-                      letterSpacing: 4,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                Image.asset(
-                  'lib/assets/images/separator.png',
-                  width: 310,
-                  height: 48,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 22),
-                _settingsRow(
-                  label: 'TEMPO DO\nROUND',
-                  valueWidget: _ValueCapsule(
-                    text: _formatDuration(_roundDuration),
-                    onTap: () async {
-                      final selected = await _showDurationWheelDialog(
-                        context: context,
-                        initialDuration: _roundDuration,
-                        title: 'TEMPO DO ROUND',
-                      );
-                      if (!mounted) return;
-                      if (selected != null) {
-                        setState(() => _roundDuration = selected);
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _settingsRow(
-                  label: 'TEMPO DE\nDESCANSO',
-                  valueWidget: _ValueCapsule(
-                    text: _formatDuration(_restDuration),
-                    onTap: () async {
-                      final selected = await _showDurationWheelDialog(
-                        context: context,
-                        initialDuration: _restDuration,
-                        title: 'TEMPO DE DESCANSO',
-                      );
-                      if (!mounted) return;
-                      if (selected != null) {
-                        setState(() => _restDuration = selected);
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _settingsRow(
-                  label: 'ROLAS',
-                  valueWidget: _ValueCapsule(
-                    text: '$_rounds',
-                    onTap: () async {
-                      final selected = await _showRoundsWheelDialog(
-                        context: context,
-                        initialValue: _rounds,
-                      );
-                      if (!mounted) return;
-                      if (selected != null) {
-                        setState(() => _rounds = selected);
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(height: 26),
-                _settingsRow(
-                  label: 'RESTART\nAUTOMÁTICO',
-                  valueWidget: _CustomSwitch(
-                    value: _autoRestartEnabled,
-                    onChanged: (value) {
-                      setState(() => _autoRestartEnabled = value);
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _settingsRow(
-                  label: 'SOM',
-                  valueWidget: _CustomSwitch(
-                    value: _soundEnabled,
-                    onChanged: (value) {
-                      setState(() => _soundEnabled = value);
-                    },
-                  ),
-                ),
-                const SizedBox(height: 34),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: const BorderSide(color: Colors.white, width: 2.5),
-                          shape: const StadiumBorder(),
-                        ),
-                        child: const FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'CANCELAR',
-                            style: TextStyle(
-                              fontFamily: 'Antonio',
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: _GradientButton(
-                        label: 'SALVAR',
-                        onPressed: () {
-                          // TODO: devolver a configuração ao RoundMode.
-                          debugPrint('Round: ${_formatDuration(_roundDuration)}');
-                          debugPrint('Descanso: ${_formatDuration(_restDuration)}');
-                          debugPrint('Rolas: $_rounds');
-                          debugPrint('Restart automático: $_autoRestartEnabled');
-                          debugPrint('Som: $_soundEnabled');
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text('EDITAR ROUND', style: TextStyle(
+                  fontFamily: 'Antonio', fontSize: 40,
+                  letterSpacing: 4, color: Colors.white,
+                )),
+              ),
+              Image.asset(
+                'lib/assets/images/separator.png',
+                width: 300,
+                height: 42,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Divider(color: Color(0xFFC40000)),
+              ),
+              const SizedBox(height: 16),
+              _settingRow('TEMPO DO\nROUND',
+                  _ValueCapsule(value: _formatDuration(_roundDuration), onTap: () => _editDuration(isRound: true))),
+              const SizedBox(height: 13),
+              _settingRow('TEMPO DE\nDESCANSO',
+                  _ValueCapsule(value: _formatDuration(_restDuration), onTap: () => _editDuration(isRound: false))),
+              const SizedBox(height: 13),
+              _settingRow('ROLAS',
+                  _ValueCapsule(value: '$_rounds', onTap: _editRounds)),
+              const SizedBox(height: 23),
+              _settingRow('RESTART\nAUTOMÁTICO',
+                  _CustomSwitch(value: _autoRestart, onChanged: (v) => setState(() => _autoRestart = v))),
+              const SizedBox(height: 16),
+              _settingRow('SOM',
+                  _CustomSwitch(value: _soundEnabled, onChanged: (v) => setState(() => _soundEnabled = v))),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(child: _ActionButton(label: 'CANCELAR', onTap: () => Navigator.pop(context), filled: false)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _ActionButton(label: 'SALVAR', onTap: _save, filled: true)),
+                ],
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _settingsRow({
-    required String label,
-    required Widget valueWidget,
-  }) {
+  Widget _settingRow(String label, Widget control) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // O texto recebe mais espaço, evitando que palavras sejam
-        // quebradas em linhas inesperadas em celulares compactos.
         Expanded(
           flex: 6,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              softWrap: false,
-              style: const TextStyle(
-                fontFamily: 'Antonio',
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
-                color: Colors.white,
-                height: 1.08,
-              ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            softWrap: false,
+            style: const TextStyle(
+              fontFamily: 'Antonio', fontSize: 17,
+              fontWeight: FontWeight.bold, letterSpacing: 1,
+              color: Colors.white, height: 1.1,
             ),
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(flex: 7, child: valueWidget),
+        const SizedBox(width: 8),
+        Expanded(flex: 7, child: control),
       ],
     );
   }
 }
 
-String _formatDuration(Duration duration) {
-  final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
-  final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-  return '$minutes:$seconds';
-}
-
 class _ValueCapsule extends StatelessWidget {
-  final String text;
+  final String value;
   final VoidCallback onTap;
-
-  const _ValueCapsule({required this.text, required this.onTap});
+  const _ValueCapsule({required this.value, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(30),
-        child: Container(
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.white, width: 1),
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontFamily: 'Antonio',
-              fontSize: 21,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-              color: Colors.white,
-            ),
-          ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(40),
+      child: Container(
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white),
+          borderRadius: BorderRadius.circular(40),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(value, style: const TextStyle(
+            fontFamily: 'Antonio', fontSize: 23,
+            fontWeight: FontWeight.bold, letterSpacing: 2,
+            color: Colors.white,
+          )),
         ),
       ),
     );
@@ -270,42 +204,31 @@ class _ValueCapsule extends StatelessWidget {
 class _CustomSwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
-
   const _CustomSwitch({required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.center,
+    return Center(
       child: GestureDetector(
         onTap: () => onChanged(!value),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          width: 94,
-          height: 46,
+          duration: const Duration(milliseconds: 180),
+          width: 88,
+          height: 44,
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
-            gradient: value
-                ? const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFFC40000), Color(0xFF730202)],
-                  )
-                : null,
+            gradient: value ? _redGradient : null,
             color: value ? null : const Color(0xFF454545),
-            borderRadius: BorderRadius.circular(40),
+            borderRadius: BorderRadius.circular(30),
           ),
           child: AnimatedAlign(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 180),
             alignment: value ? Alignment.centerRight : Alignment.centerLeft,
             child: Container(
-              width: 42,
-              height: 42,
+              width: 40,
+              height: 40,
               decoration: const BoxDecoration(
-                color: Color(0xFFE7E7E7),
-                shape: BoxShape.circle,
+                color: Color(0xFFE7E7E7), shape: BoxShape.circle,
               ),
             ),
           ),
@@ -315,73 +238,44 @@ class _CustomSwitch extends StatelessWidget {
   }
 }
 
-class _GradientButton extends StatelessWidget {
+class _ActionButton extends StatelessWidget {
   final String label;
-  final VoidCallback onPressed;
-
-  const _GradientButton({required this.label, required this.onPressed});
+  final VoidCallback onTap;
+  final bool filled;
+  const _ActionButton({required this.label, required this.onTap, required this.filled});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFC40000), Color(0xFF730202)],
-        ),
-        borderRadius: BorderRadius.circular(40),
+        gradient: filled ? _redGradient : null,
+        border: filled ? null : Border.all(color: Colors.white, width: 2),
+        borderRadius: BorderRadius.circular(30),
       ),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          elevation: 0,
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          minimumSize: const Size(0, 46),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           shape: const StadiumBorder(),
         ),
         child: FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontFamily: 'Antonio',
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
-            ),
-          ),
+          child: Text(label, style: const TextStyle(
+            fontFamily: 'Antonio', fontSize: 18,
+            fontWeight: FontWeight.bold, letterSpacing: 1.4,
+          )),
         ),
       ),
     );
   }
 }
 
-Future<Duration?> _showDurationWheelDialog({
-  required BuildContext context,
-  required Duration initialDuration,
-  required String title,
-}) {
-  return showDialog<Duration>(
-    context: context,
-    barrierColor: Colors.black.withValues(alpha: 0.65),
-    builder: (context) => _DurationWheelDialog(
-      title: title,
-      initialDuration: initialDuration,
-    ),
-  );
-}
-
 class _DurationWheelDialog extends StatefulWidget {
   final String title;
-  final Duration initialDuration;
-
-  const _DurationWheelDialog({
-    required this.title,
-    required this.initialDuration,
-  });
+  final Duration initial;
+  const _DurationWheelDialog({required this.title, required this.initial});
 
   @override
   State<_DurationWheelDialog> createState() => _DurationWheelDialogState();
@@ -396,8 +290,8 @@ class _DurationWheelDialogState extends State<_DurationWheelDialog> {
   @override
   void initState() {
     super.initState();
-    _minutes = widget.initialDuration.inMinutes.remainder(60);
-    _seconds = widget.initialDuration.inSeconds.remainder(60);
+    _minutes = widget.initial.inMinutes.remainder(60);
+    _seconds = widget.initial.inSeconds.remainder(60);
     _minutesController = FixedExtentScrollController(initialItem: _minutes);
     _secondsController = FixedExtentScrollController(initialItem: _seconds);
   }
@@ -413,75 +307,67 @@ class _DurationWheelDialogState extends State<_DurationWheelDialog> {
   Widget build(BuildContext context) {
     return _WheelDialogShell(
       title: widget.title,
-      picker: SizedBox(
-        height: 190,
+      onSave: (_minutes == 0 && _seconds == 0)
+          ? null
+          : () => Navigator.pop(context, Duration(minutes: _minutes, seconds: _seconds)),
+      child: SizedBox(
+        height: 180,
         child: Row(
           children: [
-            Expanded(
-              child: _NumberWheel(
-                controller: _minutesController,
-                itemCount: 60,
-                itemBuilder: (index) => index.toString().padLeft(2, '0'),
-                onChanged: (value) => _minutes = value,
-              ),
-            ),
-            const Text(
-              ':',
-              style: TextStyle(
-                fontFamily: 'Antonio',
-                fontSize: 32,
-                color: Colors.white,
-              ),
-            ),
-            Expanded(
-              child: _NumberWheel(
-                controller: _secondsController,
-                itemCount: 60,
-                itemBuilder: (index) => index.toString().padLeft(2, '0'),
-                onChanged: (value) => _seconds = value,
-              ),
-            ),
+            Expanded(child: _wheel(
+              _minutesController,
+              (value) => setState(() => _minutes = value),
+            )),
+            const Text(':', style: TextStyle(fontSize: 30, color: Colors.white)),
+            Expanded(child: _wheel(
+              _secondsController,
+              (value) => setState(() => _seconds = value),
+            )),
           ],
         ),
       ),
-      onCancel: () => Navigator.pop(context),
-      onSave: () => Navigator.pop(
-        context,
-        Duration(minutes: _minutes, seconds: _seconds),
+    );
+  }
+
+  Widget _wheel(FixedExtentScrollController controller, ValueChanged<int> changed) {
+    return CupertinoTheme(
+      data: const CupertinoThemeData(brightness: Brightness.dark),
+      child: CupertinoPicker(
+        scrollController: controller,
+        itemExtent: 48,
+        diameterRatio: 1.4,
+        squeeze: 1.05,
+        useMagnifier: true,
+        magnification: 1.1,
+        selectionOverlay: const SizedBox.shrink(),
+        backgroundColor: Colors.transparent,
+        onSelectedItemChanged: changed,
+        children: List.generate(60, (index) => Center(
+          child: Text(index.toString().padLeft(2, '0'),
+              style: const TextStyle(fontFamily: 'Antonio', fontSize: 32, color: Colors.white)),
+        )),
       ),
     );
   }
 }
 
-Future<int?> _showRoundsWheelDialog({
-  required BuildContext context,
-  required int initialValue,
-}) {
-  return showDialog<int>(
-    context: context,
-    barrierColor: Colors.black.withValues(alpha: 0.65),
-    builder: (context) => _RoundsWheelDialog(initialValue: initialValue),
-  );
-}
-
 class _RoundsWheelDialog extends StatefulWidget {
-  final int initialValue;
-
-  const _RoundsWheelDialog({required this.initialValue});
+  final int initial;
+  const _RoundsWheelDialog({required this.initial});
 
   @override
   State<_RoundsWheelDialog> createState() => _RoundsWheelDialogState();
 }
 
 class _RoundsWheelDialogState extends State<_RoundsWheelDialog> {
-  late int _selectedRounds;
+  late int _rounds;
   late final FixedExtentScrollController _controller;
 
   @override
   void initState() {
     super.initState();
-    _selectedRounds = widget.initialValue;
-    _controller = FixedExtentScrollController(initialItem: _selectedRounds - 1);
+    _rounds = widget.initial;
+    _controller = FixedExtentScrollController(initialItem: _rounds - 1);
   }
 
   @override
@@ -494,60 +380,26 @@ class _RoundsWheelDialogState extends State<_RoundsWheelDialog> {
   Widget build(BuildContext context) {
     return _WheelDialogShell(
       title: 'ROLAS',
-      picker: SizedBox(
-        height: 190,
-        child: _NumberWheel(
-          controller: _controller,
-          itemCount: 20,
-          itemBuilder: (index) => '${index + 1}',
-          onChanged: (value) => _selectedRounds = value + 1,
-        ),
-      ),
-      onCancel: () => Navigator.pop(context),
-      onSave: () => Navigator.pop(context, _selectedRounds),
-    );
-  }
-}
-
-class _NumberWheel extends StatelessWidget {
-  final FixedExtentScrollController controller;
-  final int itemCount;
-  final String Function(int) itemBuilder;
-  final ValueChanged<int> onChanged;
-
-  const _NumberWheel({
-    required this.controller,
-    required this.itemCount,
-    required this.itemBuilder,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoTheme(
-      data: const CupertinoThemeData(brightness: Brightness.dark),
-      child: CupertinoPicker(
-        scrollController: controller,
-        itemExtent: 48,
-        diameterRatio: 1.4,
-        squeeze: 1.05,
-        useMagnifier: true,
-        magnification: 1.1,
-        backgroundColor: Colors.transparent,
-        selectionOverlay: const SizedBox.shrink(),
-        onSelectedItemChanged: onChanged,
-        children: List.generate(
-          itemCount,
-          (index) => Center(
-            child: Text(
-              itemBuilder(index),
-              style: const TextStyle(
-                fontFamily: 'Antonio',
-                fontSize: 34,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+      onSave: () => Navigator.pop(context, _rounds),
+      child: SizedBox(
+        height: 180,
+        child: CupertinoTheme(
+          data: const CupertinoThemeData(brightness: Brightness.dark),
+          child: CupertinoPicker(
+            scrollController: _controller,
+            itemExtent: 48,
+            diameterRatio: 1.4,
+            squeeze: 1.05,
+            useMagnifier: true,
+            magnification: 1.1,
+            selectionOverlay: const SizedBox.shrink(),
+            backgroundColor: Colors.transparent,
+            onSelectedItemChanged: (index) => setState(() => _rounds = index + 1),
+            children: List.generate(30, (index) => Center(
+              child: Text('${index + 1}', style: const TextStyle(
+                fontFamily: 'Antonio', fontSize: 32, color: Colors.white,
+              )),
+            )),
           ),
         ),
       ),
@@ -557,77 +409,47 @@ class _NumberWheel extends StatelessWidget {
 
 class _WheelDialogShell extends StatelessWidget {
   final String title;
-  final Widget picker;
-  final VoidCallback onCancel;
-  final VoidCallback onSave;
-
-  const _WheelDialogShell({
-    required this.title,
-    required this.picker,
-    required this.onCancel,
-    required this.onSave,
-  });
+  final Widget child;
+  final VoidCallback? onSave;
+  const _WheelDialogShell({required this.title, required this.child, required this.onSave});
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+        constraints: const BoxConstraints(maxWidth: 340),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF292929), Color(0xFF080808)],
-          ),
+          gradient: _darkGradient,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white, width: 1),
+          border: Border.all(color: Colors.white),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontFamily: 'Antonio',
-                  fontSize: 28,
-                  letterSpacing: 3,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            picker,
-            const SizedBox(height: 18),
+            FittedBox(fit: BoxFit.scaleDown, child: Text(title, style: const TextStyle(
+              fontFamily: 'Antonio', fontSize: 28, letterSpacing: 2,
+              color: Colors.white,
+            ))),
+            const SizedBox(height: 12),
+            child,
+            const SizedBox(height: 20),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onCancel,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white, width: 2),
-                      shape: const StadiumBorder(),
-                    ),
-                    child: const FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'CANCELAR',
-                        style: TextStyle(
-                          fontFamily: 'Antonio',
-                          fontSize: 16,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                    ),
+                Expanded(child: _ActionButton(
+                  label: 'CANCELAR', filled: false,
+                  onTap: () => Navigator.pop(context),
+                )),
+                const SizedBox(width: 10),
+                Expanded(child: Opacity(
+                  opacity: onSave == null ? 0.45 : 1,
+                  child: _ActionButton(
+                    label: 'SALVAR', filled: true,
+                    onTap: onSave ?? () {},
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(child: _GradientButton(label: 'SALVAR', onPressed: onSave)),
+                )),
               ],
             ),
           ],
