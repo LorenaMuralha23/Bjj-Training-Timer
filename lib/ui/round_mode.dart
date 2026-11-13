@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:jj_timer/core/timer/round_engine.dart';
+import 'package:jj_timer/ui/menu_mode.dart';
 import 'package:jj_timer/ui/widget/roud_edit_mode.dart';
 import 'package:jj_timer/ui/widget/round_info.dart';
 
@@ -139,8 +140,46 @@ class _RoundModeState extends State<RoundMode> {
                           top: 16,
                           child: IconButton(
                             onPressed: () {
-                              debugPrint('MENU pressionado');
-                              // Conecte seu Drawer existente aqui.
+                              Navigator.push(
+                                context,
+                                PageRouteBuilder(
+                                  pageBuilder:
+                                      (context, animation, secondaryAnimation) {
+                                        return const MenuMode();
+                                      },
+                                  transitionDuration: const Duration(
+                                    milliseconds: 350,
+                                  ),
+                                  reverseTransitionDuration: const Duration(
+                                    milliseconds: 300,
+                                  ),
+                                  transitionsBuilder:
+                                      (
+                                        context,
+                                        animation,
+                                        secondaryAnimation,
+                                        child,
+                                      ) {
+                                        final offsetAnimation =
+                                            Tween<Offset>(
+                                              begin: const Offset(-1.0, 0.0),
+                                              end: Offset.zero,
+                                            ).animate(
+                                              CurvedAnimation(
+                                                parent: animation,
+                                                curve: Curves.easeInOutCubic,
+                                                reverseCurve:
+                                                    Curves.easeInOutCubic,
+                                              ),
+                                            );
+
+                                        return SlideTransition(
+                                          position: offsetAnimation,
+                                          child: child,
+                                        );
+                                      },
+                                ),
+                              );
                             },
                             icon: const Icon(Icons.menu, size: 34),
                             color: Colors.white,

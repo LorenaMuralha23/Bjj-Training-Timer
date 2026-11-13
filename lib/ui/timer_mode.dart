@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:jj_timer/core/timer/pause_and_play_engine.dart';
 import 'package:jj_timer/core/timer/stopwatch_engine.dart';
+import 'package:jj_timer/ui/menu_mode.dart';
 import 'package:jj_timer/ui/widget/timer_edit_mode.dart';
 
 import 'dart:async';
@@ -55,7 +56,45 @@ class _TimerModeState extends State<TimerMode> {
                           width: 40,
                         ),
                         onPressed: () {
-                          debugPrint('Menu button pressed');
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) {
+                                    return const MenuMode();
+                                  },
+                              transitionDuration: const Duration(
+                                milliseconds: 350,
+                              ),
+                              reverseTransitionDuration: const Duration(
+                                milliseconds: 300,
+                              ),
+                              transitionsBuilder:
+                                  (
+                                    context,
+                                    animation,
+                                    secondaryAnimation,
+                                    child,
+                                  ) {
+                                    final offsetAnimation =
+                                        Tween<Offset>(
+                                          begin: const Offset(-1.0, 0.0),
+                                          end: Offset.zero,
+                                        ).animate(
+                                          CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeInOutCubic,
+                                            reverseCurve: Curves.easeInOutCubic,
+                                          ),
+                                        );
+
+                                    return SlideTransition(
+                                      position: offsetAnimation,
+                                      child: child,
+                                    );
+                                  },
+                            ),
+                          );
                         },
                       ),
                     ),
@@ -299,14 +338,14 @@ class _TimerModeState extends State<TimerMode> {
                                 if (mode) {
                                   debugPrint("Entrei aqui");
                                   mode = false; //false
-                                   _playButtonImage = _playButtonController.playOrPause(
-                                    mode,
-                                  ); //false
+                                  _playButtonImage = _playButtonController
+                                      .playOrPause(mode); //false
                                 }
 
                                 if (durationChoosed != null) {
                                   durationSelected = durationChoosed;
-                                  _timeChoosed = _stopwatchEngine.formatDuration(durationSelected!);
+                                  _timeChoosed = _stopwatchEngine
+                                      .formatDuration(durationSelected!);
                                   _stopwatchEngine.reset();
                                   _formattedTime = _stopwatchEngine
                                       .formatDuration(durationSelected!);
