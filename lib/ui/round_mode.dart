@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:jj_timer/core/device/screen_awake_service.dart';
+
 import 'package:flutter/material.dart';
 import 'package:jj_timer/core/audio/audio_service.dart';
 import 'package:jj_timer/core/timer/round_engine.dart';
@@ -25,6 +27,8 @@ class _RoundModeState extends State<RoundMode> {
     true,
   );
 
+  final ScreenAwakeService _screenAwakeService = ScreenAwakeService();
+
   late RoundEngine _engine;
   Timer? _ticker;
   final AudioService _audioService = AudioService();
@@ -39,6 +43,7 @@ class _RoundModeState extends State<RoundMode> {
   void dispose() {
     _audioService.dispose();
     _ticker?.cancel();
+    _screenAwakeService.disable();
     super.dispose();
   }
 
@@ -82,6 +87,7 @@ class _RoundModeState extends State<RoundMode> {
       if (!_engine.isRunning) {
         _ticker?.cancel();
         _ticker = null;
+        _updateScreenAwake();
       }
     });
   }
@@ -104,13 +110,25 @@ class _RoundModeState extends State<RoundMode> {
 
       if (_engine.isRunning) _startTicker();
     }
+
+    _updateScreenAwake();
     setState(() {});
+  }
+
+  Future<void> _updateScreenAwake() async {
+    if (_engine.isRunning) {
+      await _screenAwakeService.enable();
+    } else {
+      await _screenAwakeService.disable();
+    }
   }
 
   void _reset() {
     _ticker?.cancel();
     _ticker = null;
     _engine.reset();
+
+     _updateScreenAwake();
     setState(() {});
   }
 
